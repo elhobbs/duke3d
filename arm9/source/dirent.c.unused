@@ -1,0 +1,72 @@
+
+#include "dirent.h"
+#include <errno.h>
+#include <string.h>
+#include <stdlib.h>
+#include <sys/dir.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+DIR * opendir(char const* name) {
+	DIR_ITER* di;
+	DIR * newd;
+
+	// Try to open the dir itself
+   if ( (di = diropen(name)) == NULL ) { 
+    iprintf("Can't open directory: %s \n",name); 
+   return NULL; 
+  } 
+	// Ok, got it. Alloc a struct to return.
+	newd = malloc(sizeof(DIR));
+	if (!newd) {
+		errno = ENOMEM;
+		return NULL;
+	}
+
+	newd->fd = di;
+	memset(&newd->d_ent, 0, sizeof(struct dirent));
+
+	return newd;
+}
+
+struct dirent * readdir(DIR * dir) {
+	int d;
+	char filename[256]; 
+	struct stat st;
+
+	if (!dir) {
+		errno = EBADF;
+		return NULL;
+	}
+	d = dirnext(dir->fd,filename,&st);
+
+	if (d != 0)
+		return NULL;
+
+	dir->d_ent.d_ino = 0;
+	dir->d_ent.d_off = 0;
+	dir->d_ent.d_reclen = 0;
+
+	if(st.st_mode & S_IFDIR == 0)
+		dir->d_ent.d_type = 4;	// DT_DIR
+    else
+		dir->d_ent.d_type = 8;	// DT_REG
+
+	strncpy(dir->d_ent.d_name, filename, 255);
+
+	return &dir->d_ent;
+}
+
+int closedir(DIR * d) {
+
+	if (!d) {
+		errno = EBADF;
+		return -1;
+	}
+
+	dirclose(d->fd);
+	free(d);
+
+	return 0;
+}

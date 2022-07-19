@@ -1,0 +1,21 @@
+After you are in the game, you have many different keys that control Duke.
+You can get a complete listing of the default keys by pressing the F1 key
+during gameplay.  Some of the basic controls used to play Duke Nukem 3D are:
+
+Arrows -> Move Duke ¦ Shift    -> Run      ¦ 1 to 9 -> Weapons
+A      -> Jump      ¦ CapsLock -> RunLock  ¦ Tab    -> Map
+Z      -> Duck      ¦ Ctrl     -> Fire     ¦ [ or ] -> Inventory Select
+Alt    -> Strafe    ¦ Spacebar -> Open/Use ¦ Enter  -> Use Inventory Item
+
+You can also look up and down by pressing Page Up or Page Down.  Using the
+Home and End keys aims up or down.  The Insert and Delete keys will let you
+look left and right without turning that direction, and the 5 on your number
+keypad will return your view to center.  You can also use "U" to turn on a
+mouse aiming control system, and "I" to turn on crosshairs for aiming.
+
+There are more options than these:  press F1 during gameplay to see a
+complete listing of all default controls.  Any of these controls can be
+altered to whatever you want them to be by selecting the "Controller Setup"
+option in the setup program.  Please see the section on "Advanced Controller
+Setup for information regarding controlling your controller.
+

@@ -1,0 +1,26 @@
+#ifndef __SYS_DIRENT_H
+#define __SYS_DIRENT_H
+
+#include <nds.h> 
+#include <fat.h>
+#include <sys/dir.h>
+ 
+struct dirent {
+	int	d_ino;
+	off_t	d_off;
+	uint16	d_reclen;
+	uint8	d_type;
+	char	d_name[256];
+};
+
+typedef struct {
+	DIR_ITER*		fd;
+	struct dirent	d_ent;
+} DIR;
+
+DIR *opendir(char const* name);
+int closedir(DIR *dir);
+struct dirent *readdir(DIR *dir);
+
+#endif
+                                

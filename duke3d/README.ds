@@ -1,0 +1,25 @@
+Port of the Duke3d from the GP2x port
+The home page of the NDS port is http://gpf.dcemu.co.uk .
+
+dpad 		move Duke
+a 		fire
+b		jump
+x		duck
+y 		escape back from menu
+lefttrig	strafe left
+righttrig	strafe right
+touchscreen 	change weapon
+select		use item
+start		select
+touchscreen	look around
+
+start+select 	return to menu
+
+dldi patch .nds and copy it and defs.con, game.con, user.con, duke3d.grp  and supplied duke3d.cfg to /duke3d directory of card. might be case sensitive with Uppercase
+
+thanks and enjoy,
+Troy Davis(GPF)
+http://gpf.dcemu.co.uk
+
+
+
