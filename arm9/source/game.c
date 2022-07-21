@@ -7530,53 +7530,7 @@ static int load_duke3d_groupfile(void)
 
 //#include "NEO_Spring_Compo_2007_Raphael_NDS_img_bin.h"
 
-static void nds_init() {
-	lcdMainOnTop();
-
-/*	videoSetMode(MODE_3_2D | DISPLAY_BG3_ACTIVE);
-	vramSetBankA(VRAM_A_MAIN_BG_0x06000000);
-	vramSetBankB(VRAM_B_MAIN_BG_0x06020000,);
-	vramSetBankC(VRAM_C_MAIN_BG_0x06040000);
-
-	ds_bg_main = bgInit(3, BgType_Bmp8, BG_BMP8_512x256, 0, 0);
-    BG3_XDX = ((dswidth / 256) << 8) | (dswidth % 256) ;
-    BG3_XDY = 0;
-    BG3_YDX = 0;
-    BG3_YDY = ((dsheight / 192) << 8) | ((dsheight % 192) + (dsheight % 192) / 3) ;
-    BG3_CX = 0;
-    BG3_CY = 0; 
-	surface=(uint8*)(0x06000000);
-
-	//bgSetPriority(1, 0);
-	//bgSetPriority(3, 1);
-    */
-
-	videoSetModeSub(MODE_3_2D | DISPLAY_BG2_ACTIVE | DISPLAY_BG3_ACTIVE);
-	vramSetBankD(VRAM_C_SUB_BG_0x06200000);
-	consoleInit(0, 2, BgType_Text4bpp, BgSize_T_256x256, 26, 3, false, true);
-	bgInitSub(3, BgType_Bmp8, BgSize_B8_256x256, 0, 0);
-
-	bgSetPriority(2+4, 2);
-	bgSetPriority(3+4, 1);
-
-    //memset((void *)0x06200000,0,256*256);
-
-
-	bgUpdate();
-
-	BG_PALETTE_SUB[0] = 0;
-	BG_PALETTE_SUB[1] = RGB15(31,31,31);//by default font will be rendered with color 255
-	BG_PALETTE_SUB[255] = RGB15(31,31,31);//by default font will be rendered with color 255
-
-    //do {
-    //    printf("=");
-    //    swiWaitForVBlank();
-    //} while(1);
-
-	//BG_PALETTE[1] = 0;// (1 << 15) | RGB15(0xff >> 3, 0, 0);
-	//BG_PALETTE_SUB[1] = 0;// (1 << 15) | RGB15(0, 0xff >> 3, 0);
-
-}
+void nds_init();
 
 int main(int argc,char **argv)
 {
@@ -7680,6 +7634,10 @@ int main(int argc,char **argv)
   if (!fatInitDefault())  
 	{
 		iprintf("Unable to initialize media device!");
+        do {
+            printf("=");
+            swiWaitForVBlank();
+        } while(1);
 		return -1;
 	}
 

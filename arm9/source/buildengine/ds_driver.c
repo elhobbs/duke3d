@@ -1370,7 +1370,7 @@ void nds_init() {
 	videoSetMode(MODE_3_2D | DISPLAY_BG3_ACTIVE);
 	vramSetBankA(VRAM_A_MAIN_BG_0x06000000);
 	vramSetBankB(VRAM_B_MAIN_BG_0x06020000);
-	vramSetBankC(VRAM_C_MAIN_BG_0x06040000);
+	vramSetBankD(VRAM_D_MAIN_BG_0x06040000);
 
 	ds_bg_main = bgInit(3, BgType_Bmp8, BG_BMP8_512x256, 0, 0);
     REG_BG3PA = ((dswidth / 256) << 8) | (dswidth % 256) ;
@@ -1384,7 +1384,7 @@ void nds_init() {
 	//bgSetPriority(1, 0);
 	//bgSetPriority(3, 1);
 
-	videoSetModeSub(MODE_3_2D | DISPLAY_BG2_ACTIVE | DISPLAY_BG3_ACTIVE);
+	videoSetModeSub(MODE_3_2D);
 	vramSetBankD(VRAM_C_SUB_BG_0x06200000);
 	consoleInit(0, 2, BgType_Text4bpp, BgSize_T_256x256, 26, 3, false, true);
 	ds_bg_sub = bgInitSub(3, BgType_Bmp8, BgSize_B8_256x256, 0, 0);
@@ -1408,6 +1408,10 @@ void nds_init() {
 
 	dest16 = (u16*)bgGetGfxPtr(ds_bg_sub);
 	memset(dest16, 1, SCREEN_WIDTH * SCREEN_HEIGHT);*/
+    /*do {
+        printf("+");
+        swiWaitForVBlank();
+    } while(1);*/
 
 }
 
@@ -1442,7 +1446,7 @@ static void set_sdl_renderer(void)
     } /* else */
 
 #if 1
-    nds_init();
+    //nds_init();
 #else
 	//powerON(POWER_ALL_2D); 
 	//irqInit();

@@ -57,6 +57,11 @@ void SoundStartup( void )
    // if they chose None lets return
    if (FXDevice == NumSoundCards) return;
 
+#ifdef __NDS__
+    soundMicOff();
+    soundEnable();   
+#endif
+
    // Do special Sound Blaster, AWE32 stuff
    if (
          ( FXDevice == SoundBlaster ) ||
@@ -300,6 +305,13 @@ void playmusic(char *fn)
 //   long				lTotalLength;
 //} FILEINFO;
 
+int readBlockLen(byte *data) {
+    int len = data[0] + 
+        (data[1]<<8) + 
+        (data[2]<<16);
+    return len;
+}
+
 char loadsound(unsigned short num)
 {
     long   fp, l,newl;
@@ -307,6 +319,7 @@ char loadsound(unsigned short num)
  //  unsigned char    ucChannels;
  //  unsigned short   usFileFormat;
    unsigned short   usTimeConstant;
+   byte freq_div, codec;
  //  long				lSamplesPerSeconds;
  //  long				lTotalLength;
 	//byte bType;
@@ -335,8 +348,8 @@ char loadsound(unsigned short num)
     allocache((long *)&Sound[num].ptr,l,(unsigned char *)&Sound[num].lock);
 	allocache((long *)&pData,l,(unsigned char *)&thelock);
 	
-    char *pDataPos = pData;
-	char *pptrPos = Sound[num].ptr;
+    byte *pDataPos = pData;
+	byte *pptrPos = Sound[num].ptr;
 	
 	byte bType;
     signed long int lLen;
@@ -349,14 +362,19 @@ char loadsound(unsigned short num)
 
 	if (strncmp((char *)Description,"Creative Voice File\x1A",10)!=0)
 	{
-		snddebug("************NOT A VOC***********");
+		printf("************NOT A VOC*********** %d\n", num);
 		long size, header;
 		short Compression;
 		short ChannelCount;
 		long SampleRate;
 		short BitsPerSample;
+        int i;
 
-		memcpy(pptrPos, pDataPos, soundsiz[num]);
+		//memcpy(pptrPos, pDataPos, soundsiz[num]);
+        for (i = 0; i < soundsiz[num]; i++) {
+            pptrPos[i] = pDataPos[i] ^ 0x80;
+        }
+
 		Sound[num].speed=8000;
 
 		//pDataPos+=sizeof(header);
@@ -382,7 +400,10 @@ char loadsound(unsigned short num)
    {
 	   //snddebug("loop");
       // Read the block type
-      memcpy(&bType, pDataPos, sizeof(bType));pDataPos+=sizeof(bType);//newl+=sizeof(bType);
+      //memcpy(&bType, pDataPos, sizeof(bType));pDataPos+=sizeof(bType);//newl+=sizeof(bType);
+      bType = *pDataPos++;
+      // = readBlockLen(pDataPos);
+      //pDataPos += 3;
       //snddebug("bType %d",(int)bType);
       lLen = 0;
       switch( bType )
@@ -393,12 +414,21 @@ char loadsound(unsigned short num)
 			memcpy(&lLen, pDataPos, 3);pDataPos+=3;//newl+=3;
 			//snddebug("case 1a");
             lLen -= 2;     // Remove Time Constant and File Format bytes
-            memcpy(&usTimeConstant, pDataPos, 1);pDataPos++;//newl++;
-			Sound[num].speed = 1000000 / (256-(usTimeConstant % 256));
-            pDataPos++;//newl++;
+            //memcpy(&freq_div, pDataPos, 1);pDataPos++;//newl++;
+            freq_div = *pDataPos++;
+            codec = *pDataPos++;
+			Sound[num].speed = 1000000 / (256 - freq_div);
+			//printf("case 1 %d %d %d\n", Sound[num].speed, codec, freq_div);
+            //pDataPos++;//newl++;
             // Store this sample in memory
 			//snddebug("case 1b");
-			memcpy(pptrPos, pDataPos, lLen);
+			//memcpy(pptrPos, pDataPos, lLen);
+            int i;
+
+            //memcpy(pptrPos, pDataPos, soundsiz[num]);
+            for (i = 0; i < soundsiz[num]; i++) {
+                pptrPos[i] = pDataPos[i] ^ 0x80;
+            }
 			//snddebug("case 1c");
             pDataPos += lLen;pptrPos+=lLen;newl+=lLen;
 			 //snddebug("case 1 done");
@@ -426,17 +456,21 @@ char loadsound(unsigned short num)
    //      }
          case 9:
          {
-			 //snddebug("case 9");
             memcpy(&lLen, pDataPos, 3);pDataPos+=3;//newl+=3;
             lLen -= 12;
-            //memcpy(&Sound[num].speed, pDataPos, 4);//pDataPos+=12;//newl+=4;
-			Sound[num].speed=pDataPos[0] | (pDataPos[1] << 8) | (pDataPos[2] << 16) | (pDataPos[3] << 24);
+            memcpy(&(Sound[num].speed), pDataPos, 4);//pDataPos+=12;//newl+=4;
+			//printf("case 9 %d\n", Sound[num].speed);
+			//Sound[num].speed=pDataPos[0] | (pDataPos[1] << 8) | (pDataPos[2] << 16) | (pDataPos[3] << 24);
             //pDataPos++;//newl++;
             //pDataPos++;//newl++;
             //pDataPos+=2;//newl+=2;
 			pDataPos+=12;
             // Store this sample in memory
-            memcpy(pptrPos, pDataPos, lLen);
+            //memcpy(pptrPos, pDataPos, lLen);
+            int i;
+            for (i = 0; i < lLen; i++) {
+                pptrPos[i] = pDataPos[i] ^ 0x80;
+            }
             pDataPos += lLen;pptrPos+=lLen;newl+=lLen;
 			//snddebug("case 9 done");
             break;

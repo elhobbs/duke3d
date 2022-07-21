@@ -1036,7 +1036,7 @@ int FX_PlayVOC3D(char *ptr, int pitchoffset, int angle, int distance,
 #else
 	uint32 *chunk;
 #endif
-    //snddebug("Playing voice at angle (%d), distance (%d), priority (%d).\n",
+    //printf("Playing voice at angle (%d), distance (%d), priority (%d).\n",
     //            angle, distance, priority);
 
     //rc = setupVocPlayback(ptr, -1, priority, callbackval, &chan, &chunk);
@@ -1069,6 +1069,7 @@ int FX_PlayVOC3D(char *ptr, int pitchoffset, int angle, int distance,
 #ifndef __NDS__
      Mix_PlayChannel(chan, chunk, 0);
 #else
+    soundPlaySample(Sound[ callbackval ].ptr, SoundFormat_8Bit, soundsiz[callbackval], Sound[ callbackval ].speed, mid>>1, left>>1, false, 0);
 		#if 0
             TransferSoundData blaster = {
 			Sound[ callbackval ].ptr,		/* Sample address */

@@ -4013,6 +4013,21 @@ int allocatepermanenttile(short tilenume, long xsiz, long ysiz)
 }
 
 
+#if defined __NDS__
+
+int getMemUsed() { // returns the amount of used memory in bytes 
+   struct mallinfo mi = mallinfo(); 
+   return mi.uordblks; 
+} 
+
+int getMemFree() { // returns the amount of free memory in bytes 
+   struct mallinfo mi = mallinfo(); 
+   return mi.fordblks + (getHeapLimit() - getHeapEnd()); 
+}
+
+#endif
+
+
 int loadpics(char *filename)
 {
 	long offscount, localtilestart, localtileend, dasiz;
@@ -4076,9 +4091,18 @@ int loadpics(char *filename)
 
 	clearbuf(&gotpic[0],(long)((MAXTILES+31)>>5),0L);
 
+	int alloc_mem = getMemFree() * 0.8f;
 	/* try dpmi_DETERMINEMAXREALALLOC! */
 
-	cachesize = max(artsize,1048576);
+	printf("artsize: %d\n",artsize);
+	printf("acachesize: %d\n",cachesize);
+	printf("getMemUsed: %08x\n",getMemUsed());
+	printf("getMemFree: %08x\n",getMemFree());
+	//do {
+	//	swiWaitForVBlank();
+	//}while(1);
+
+	cachesize = max(artsize,alloc_mem);
 	//	cachesize = cachesize/2;
 
 	while ((pic = (char *)kkmalloc(cachesize)) == NULL)
@@ -4086,7 +4110,6 @@ int loadpics(char *filename)
 		cachesize -= 65536L;
 		if (cachesize < 65536) return(-1);
 	}
-	printf("%d %d\n",artsize,cachesize);
 	initcache(((long)FP_OFF(pic)+15)&0xfffffff0,(cachesize-((-(long)FP_OFF(pic))&15))&0xfffffff0);
 
 	for(i=0;i<MAXTILES;i++)
@@ -4443,9 +4466,9 @@ static void ceilspritehline (long x2, long y)
 	long x1, v, bx, by;
 
 	/*
-	 * x = x1 + (x2-x1)t + (y1-y2)u  ³  x = 160v
-	 * y = y1 + (y2-y1)t + (x2-x1)u  ³  y = (scrx-160)v
-	 * z = z1 = z2                   ³  z = posz + (scry-horiz)v
+	 * x = x1 + (x2-x1)t + (y1-y2)u  ï¿½  x = 160v
+	 * y = y1 + (y2-y1)t + (x2-x1)u  ï¿½  y = (scrx-160)v
+	 * z = z1 = z2                   ï¿½  z = posz + (scry-horiz)v
      */
 
 	x1 = lastx[y]; if (x2 < x1) return;
