@@ -1069,7 +1069,7 @@ int FX_PlayVOC3D(char *ptr, int pitchoffset, int angle, int distance,
 #ifndef __NDS__
      Mix_PlayChannel(chan, chunk, 0);
 #else
-    soundPlaySample(Sound[ callbackval ].ptr, SoundFormat_8Bit, soundsiz[callbackval], Sound[ callbackval ].speed, mid>>1, left>>1, false, 0);
+    soundPlaySample(Sound[ callbackval ].ptr, Sound[ callbackval ].bits == 16 ? SoundFormat_16Bit : SoundFormat_8Bit, soundsiz[callbackval], Sound[ callbackval ].speed, mid>>1, left>>1, false, 0);
 		#if 0
             TransferSoundData blaster = {
 			Sound[ callbackval ].ptr,		/* Sample address */

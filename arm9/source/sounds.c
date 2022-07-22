@@ -305,14 +305,148 @@ void playmusic(char *fn)
 //   long				lTotalLength;
 //} FILEINFO;
 
-int readBlockLen(byte *data) {
-    int len = data[0] + 
-        (data[1]<<8) + 
-        (data[2]<<16);
-    return len;
-}
+static void mix8(uint8_t *dst8, uint8_t *src8, int samples) {
+    for(int i=0;i<samples;i++) {
+        dst8[i] = src8[i] ^ 0x80;
+    }
+} 
+
+static void mix16(uint16_t *dst16, uint16_t *src16, int samples) {
+    for(int i=0;i<samples;i++) {
+        dst16[i] = src16[i] ^ 0x80;
+    }
+} 
 
 char loadsound(unsigned short num)
+{
+    long fp, l;
+
+    if(num >= NUM_SOUNDS || SoundToggle == 0) return 0;
+    if (FXDevice == NumSoundCards) return 0;
+
+    fp = kopen4load(sounds[num],loadfromgrouponly);
+    if(fp == -1)
+    {
+        return 0;
+    }
+    l = kfilelength( fp );
+    soundsiz[num] = l;
+    Sound[num].lock = 200;
+	int thelock = 1;
+	uint16* pData;
+    allocache((long *)&Sound[num].ptr,l,(unsigned char *)&Sound[num].lock);
+	allocache((long *)&pData,l,(unsigned char *)&thelock);
+
+    byte *ptr = pData;
+	byte *pptrPos = Sound[num].ptr;
+	
+	kread( fp, pData , l);
+	kclose( fp ); 
+
+	uint8_t blockType;
+	size_t blockLength;
+
+	uint8_t freq_div;
+	uint16_t codec;
+	uint32_t sample_rate;
+    uint32_t samples;
+	uint8_t bits;
+	uint8_t channels;
+
+	if (strncmp((const char *)ptr, "Creative Voice File\x1A",10) != 0) {
+		printf("not a VOC!\n");
+        return 0;
+	}
+	ptr += 0x1a;
+
+	do {
+		blockType = *ptr;
+		if (blockType != 0) {
+			blockLength = ptr[1] | (ptr[2] << 8) | (ptr[3] << 16);
+		}
+		else {
+			blockLength = 0;
+		}
+		ptr += 4;
+		//printf("blockType: %d blockLength: %ld\n", blockType, blockLength);
+		switch (blockType) {
+		case 0:
+			break;
+		case 1:
+			freq_div = ptr[0];
+			codec = ptr[1];
+			sample_rate = 1000000 / (256 - freq_div);
+            channels = 1;
+			//printf("case 1 %d %d\n", codec, sample_rate);
+            switch(codec) {
+                case 0:
+                    bits = 8;
+                    samples = blockLength-2;
+                    mix8(pptrPos, &ptr[2], samples);
+                    pptrPos += samples;
+                    break;
+                case 4:
+                    bits = 16;
+                    samples = blockLength-2;
+                    mix16(pptrPos, &ptr[2], samples/2);
+                    pptrPos += samples;
+                    break;
+            }
+			break;
+        case 2:
+			//printf("case 2 %d %d\n", codec, sample_rate);
+            switch(codec) {
+                case 0:
+                    bits = 8;
+                    samples = blockLength;
+                    mix8(pptrPos, &ptr[0], samples);
+                    pptrPos += samples;
+                    break;
+                case 4:
+                    bits = 16;
+                    samples = blockLength;
+                    mix16(pptrPos, &ptr[0], samples/2);
+                    pptrPos += samples;
+                    break;
+            }
+			break;
+		case 9:
+			sample_rate = ptr[0] | (ptr[1] << 8) | (ptr[2] << 16) | (ptr[3] << 24);
+			bits = ptr[4];
+			channels = ptr[5];
+			codec = ptr[6] | (ptr[7] << 8);
+			//printf("case 9 %d %d %d %d\n", codec, sample_rate, bits, channels);
+            switch(codec) {
+                case 0:
+                    samples = blockLength-12;
+                    mix8(pptrPos, &ptr[12], samples);
+                    pptrPos += samples;
+                    break;
+                case 4:
+                    samples = blockLength-12;
+                    mix16(pptrPos, &ptr[12], samples/2);
+                    pptrPos += samples;
+                    break;
+            }
+		default:
+			break;
+		}
+
+		ptr += blockLength;
+	} while (blockType != 0);
+
+
+    Sound[num].bits = bits;
+    Sound[num].channels = channels;
+    Sound[num].speed = sample_rate;
+	soundsiz[num] = (u32)ptr - (u32)pData;
+	agecache();
+	   
+    return 1;
+
+}
+
+char loadsound2(unsigned short num)
 {
     long   fp, l,newl;
  //  unsigned char    ucBitsPerSample;
@@ -473,6 +607,15 @@ char loadsound(unsigned short num)
             }
             pDataPos += lLen;pptrPos+=lLen;newl+=lLen;
 			//snddebug("case 9 done");
+            break;
+         }
+         default:
+         {
+			printf("case %d\n", bType);
+            pDataPos += lLen;pptrPos+=lLen;//newl+=lLen;
+            //do{
+            //    swiWaitForVBlank();
+            //} while(1);
             break;
          }
       };

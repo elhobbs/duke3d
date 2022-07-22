@@ -326,6 +326,7 @@ typedef struct
     char *ptr;
     volatile char lock;
     int  length, num;
+    byte bits, channels;
 	long speed;
 } SAMPLE;
 
