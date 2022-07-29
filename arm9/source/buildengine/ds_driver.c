@@ -30,8 +30,8 @@
 #if (!defined PLATFORM_SUPPORTS_DS)
 #error This platform apparently is not a DS. Do not compile this.
 #endif
-int dswidth=512;
-int dsheight=256;
+static const int dswidth=256;
+static const int dsheight=192;
 typedef struct R{
 	int x;
 	int y;
@@ -67,6 +67,8 @@ void Pause(uint32 ms)
    now=timers2ms(TIMER0_DATA, TIMER1_DATA); 
    while((uint32)timers2ms(TIMER0_DATA, TIMER1_DATA)<now+ms); 
 } 
+
+static int curr_dma_channel = 0;
 
 //static plt palette[256];
 
@@ -344,7 +346,7 @@ static void init_new_res_vars(int davidoption)
     xdim = xres = dswidth;
     ydim = yres = dsheight;
 
-    bytesperline = 512;
+    bytesperline = 256;
     vesachecked = 1;
     vgacompatible = 1;
     linearmode = 1;
@@ -1367,18 +1369,20 @@ static u16 d_8to16table[256];
 void nds_init() {
 	lcdMainOnTop();
 
+  // Arm9 in 133MHz
+  setCpuClock(true);
+
 	videoSetMode(MODE_3_2D | DISPLAY_BG3_ACTIVE);
 	vramSetBankA(VRAM_A_MAIN_BG_0x06000000);
 	vramSetBankB(VRAM_B_MAIN_BG_0x06020000);
 	vramSetBankD(VRAM_D_MAIN_BG_0x06040000);
 
-	ds_bg_main = bgInit(3, BgType_Bmp8, BG_BMP8_512x256, 0, 0);
-    REG_BG3PA = ((dswidth / 256) << 8) | (dswidth % 256) ;
-    REG_BG3PB = 0;
-    REG_BG3PC = 0;
-    REG_BG3PD = ((dsheight / 192) << 8) | ((dsheight % 192) + (dsheight % 192) / 3) ;
-    REG_BG3X = 0;
-    REG_BG3Y = 0; 
+  ds_bg_main = bgInit(3, BgType_Bmp8, BG_BMP8_256x256, 0, 0);
+
+  const int scale_x = (SCREEN_WIDTH * 256) / SCREEN_WIDTH;
+  const int scale_y = (SCREEN_HEIGHT * 256) / SCREEN_HEIGHT;
+  bgSetRotateScale(ds_bg_main, 0, scale_x, scale_y);
+
 	surface=(uint8*)(0x06000000);
 
 	//bgSetPriority(1, 0);
@@ -2251,7 +2255,7 @@ void getvalidvesamodes(void)
     int i;
     Rect **modes = NULL;
     int stdres[][2] = {
-                        (320, 200) ,(512, 256)};//, {640, 350},			{640, 480}
+                        (256, 192)};//, {640, 350},			{640, 480}
                 
 
     if (already_checked)
@@ -2439,17 +2443,18 @@ static unsigned char mirrorcolor = 0;
 
 void _updateScreenRect(long x, long y, long w, long h)
 {
-    if (renderer == RENDERER_SOFTWARE)
-	{
-		int yy;
-		uint16* videoRAM=surface;
-		uint16* sourceImage=frameplace;
-		for ( yy = y; yy < h; yy++ ) {
-			dmaCopyWords( 3, sourceImage+x, videoRAM+x, x+w );
-			videoRAM+= ( 512 >> 2 );
-			sourceImage+= ( 320 >> 2 );
-		}
-	}
+  if (renderer == RENDERER_SOFTWARE)
+  {
+    int yy;
+    uint16* videoRAM=surface;
+    uint16* sourceImage=frameplace;
+    for ( yy = y; yy < h; yy++ ) {
+      dmaCopyWordsAsynch(curr_dma_channel, sourceImage+x, videoRAM+x, x+w );
+      curr_dma_channel = (curr_dma_channel + 1) % 4;
+      videoRAM+= ( 256 >> 2 );
+      sourceImage+= ( 256 >> 2 );
+    }
+  }
         //SDL_UpdateRect(surface, x, y, w, h);
 } /* _updatescreenrect */
 
@@ -2460,17 +2465,18 @@ void _nextpage(void)
 
     handle_events();
 
-    if (renderer == RENDERER_SOFTWARE)
-    {
-        if (qsetmode == 200)
-		{
-			//memcpy(surface, (const void *) frameplace, 512 * 256);
-				DC_FlushRange(frameplace, dswidth*dsheight);
-				dmaCopy(frameplace,surface, (512*256));
-		}
+//    if (renderer == RENDERER_SOFTWARE)
+//    {
+//        if (qsetmode == 200)
+//        {
+          //memcpy(surface, (const void *) frameplace, 512 * 256);
+          DC_FlushRange(frameplace, dswidth*dsheight);
+          dmaCopyWordsAsynch(curr_dma_channel, frameplace,surface, (256*192));
+          curr_dma_channel = (curr_dma_channel + 1) % 4;
+//        }
         //SDL_UpdateRect(surface, 0, 0, 0, 0);
         /*SDL_Flip(surface);  !!! */
-    } /* if */
+//    } /* if */
 
 #ifdef USE_OPENGL
     else if (renderer == RENDERER_OPENGL3D)
@@ -2479,11 +2485,11 @@ void _nextpage(void)
     } /* else if */
 #endif
 
-    if ((debug_hall_of_mirrors) && (qsetmode == 200) && (frameplace))
-    {
-        memset((void *) frameplace, mirrorcolor, dswidth * dsheight);
-        mirrorcolor++;
-    } /* if */
+//    if ((debug_hall_of_mirrors) && (qsetmode == 200) && (frameplace))
+//    {
+//        memset((void *) frameplace, mirrorcolor, dswidth * dsheight);
+//        mirrorcolor++;
+//    } /* if */
 
     ticks = GetTicks();
     total_render_time = (ticks - last_render_ticks);
